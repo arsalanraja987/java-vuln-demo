@@ -1,45 +1,55 @@
-#!/bin/bash
+import re
+import os
+import subprocess
 
-echo "🔍 Checking FileLoader.java for vulnerability..."
+# Path to the file to check and fix
+file_path = "FileLoader.java"
 
-# File path to fix
-FILE="FileLoader.java"
+# Vulnerable line pattern (regex safe)
+vuln_pattern = r'File file = new File\("/var/data/" \+ fileName\);'
 
-# Vulnerable pattern to look for
-VULN_LINE='File file = new File("/var/data/" + fileName);'
+# Secure replacement block
+replacement_code = '''File baseDir = new File("/var/data/");
+        File file = new File(baseDir, fileName).getCanonicalFile();
+        if (!file.getPath().startsWith(baseDir.getCanonicalPath())) {
+            throw new SecurityException("Invalid file path");
+        }'''
 
-# Safe replacement block
-SAFE_BLOCK='File baseDir = new File("/var/data/");
-File file = new File(baseDir, fileName).getCanonicalFile();
-if (!file.getPath().startsWith(baseDir.getCanonicalPath())) {
-    throw new SecurityException("Invalid file path");
-}'
+def run_git_cmd(command):
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    print(result.stdout)
+    if result.stderr:
+        print("Git Error:", result.stderr)
 
-# Check if the vulnerable line exists
-if grep -q "$VULN_LINE" "$FILE"; then
-    echo "🚨 Vulnerability found. Applying fix..."
+def fix_file():
+    if not os.path.exists(file_path):
+        print(f"❌ File not found: {file_path}")
+        return
 
-    # Replace the vulnerable line with safe code
-    sed -i "s|$VULN_LINE|$SAFE_BLOCK|" "$FILE"
+    with open(file_path, 'r') as file:
+        content = file.read()
 
-    # Git setup
-    git config --global user.name "AutoFix Bot"
-    git config --global user.email "autofix@bot.com"
+    if 'File file = new File("/var/data/" + fileName);' not in content:
+        print("✅ No vulnerability found.")
+        return
 
-    # Ensure we are on the correct branch
-    git checkout main
+    print("🔧 Vulnerability found. Applying fix...")
 
-    # Pull the latest changes to avoid conflicts
-    git pull origin main
+    # Replace the vulnerable line
+    fixed_content = re.sub(vuln_pattern, replacement_code, content)
 
-    # Stage and commit the change
-    git add "$FILE"
-    git commit -m "Fix: Auto-remediated path traversal vulnerability"
+    # Overwrite the file
+    with open(file_path, 'w') as file:
+        file.write(fixed_content)
 
-    # Push to main branch
-    git push origin main
+    # Git operations
+    run_git_cmd("git config --global user.email \"bot@example.com\"")
+    run_git_cmd("git config --global user.name \"AutoFix Bot\"")
+    run_git_cmd(f"git add {file_path}")
+    run_git_cmd("git commit -m \"fix: patch path traversal vulnerability in FileLoader.java\"")
+    run_git_cmd("git push origin main")
 
-    echo "✅ Fix applied and pushed successfully."
-else
-    echo "✔️ No vulnerable pattern found. Nothing to fix."
-fi
+    print("🚀 Fix committed and pushed!")
+
+# Run the function
+fix_file()
