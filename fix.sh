@@ -1,38 +1,45 @@
 #!/bin/bash
 
-echo "🔍 Scanning for vulnerable FileLoader.java..."
+echo "🔍 Checking FileLoader.java for vulnerability..."
+
+# File path to fix
 FILE="FileLoader.java"
 
-if grep -q 'File file = new File("/var/data/" + fileName);' "$FILE"; then
-    echo "🚨 Vulnerability found in $FILE"
-    echo "🛠️  Applying fix..."
+# Vulnerable pattern to look for
+VULN_LINE='File file = new File("/var/data/" + fileName);'
 
-    cat > "$FILE" <<'EOF'
-import java.io.File;
-import java.io.IOException;
+# Safe replacement block
+SAFE_BLOCK='File baseDir = new File("/var/data/");
+File file = new File(baseDir, fileName).getCanonicalFile();
+if (!file.getPath().startsWith(baseDir.getCanonicalPath())) {
+    throw new SecurityException("Invalid file path");
+}'
 
-public class FileLoader {
-    public static void main(String[] args) throws IOException {
-        String fileName = "../../etc/passwd"; // Simulated user input
-        File baseDir = new File("/var/data/");
-        File file = new File(baseDir, fileName).getCanonicalFile();
+# Check if the vulnerable line exists
+if grep -q "$VULN_LINE" "$FILE"; then
+    echo "🚨 Vulnerability found. Applying fix..."
 
-        if (!file.getPath().startsWith(baseDir.getCanonicalPath())) {
-            throw new SecurityException("Invalid file path");
-        }
+    # Replace the vulnerable line with safe code
+    sed -i "s|$VULN_LINE|$SAFE_BLOCK|" "$FILE"
 
-        System.out.println("Loading file: " + file.getPath());
-    }
-}
-EOF
-
-    echo "✅ Fix applied successfully."
-
+    # Git setup
     git config --global user.name "AutoFix Bot"
-    git config --global user.email "bot@example.com"
+    git config --global user.email "autofix@bot.com"
+
+    # Ensure we are on the correct branch
+    git checkout main
+
+    # Pull the latest changes to avoid conflicts
+    git pull origin main
+
+    # Stage and commit the change
     git add "$FILE"
     git commit -m "Fix: Auto-remediated path traversal vulnerability"
-    git push
+
+    # Push to main branch
+    git push origin main
+
+    echo "✅ Fix applied and pushed successfully."
 else
-    echo "✅ No vulnerability found."
+    echo "✔️ No vulnerable pattern found. Nothing to fix."
 fi
