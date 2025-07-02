@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GH_TOKEN }}
 
     - name: Make fix.sh executable
       run: chmod +x fix.sh
@@ -20,12 +22,9 @@ jobs:
       run: ./fix.sh
 
     - name: Commit and Push Fix
-      env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
       run: |
-        git config user.name "AutoFix Bot"
-        git config user.email "autofix@example.com"
+        git config --global user.name "AutoFix Bot"
+        git config --global user.email "autofix@example.com"
         git add .
         git commit -m "Auto-fixed path traversal vulnerability" || echo "No changes to commit"
-        git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
         git push origin HEAD:main
