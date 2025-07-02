@@ -2,44 +2,32 @@
 
 echo "🔍 Checking FileLoader.java for vulnerability..."
 
-# File path to fix
+# File to check
 FILE="FileLoader.java"
 
-# Vulnerable pattern to look for
+# Vulnerable line
 VULN_LINE='File file = new File("/var/data/" + fileName);'
 
-# Safe replacement block
+# Secure replacement code
 SAFE_BLOCK='File baseDir = new File("/var/data/");
 File file = new File(baseDir, fileName).getCanonicalFile();
 if (!file.getPath().startsWith(baseDir.getCanonicalPath())) {
     throw new SecurityException("Invalid file path");
 }'
 
-# Check if the vulnerable line exists
+# Check and fix
 if grep -q "$VULN_LINE" "$FILE"; then
-    echo "🚨 Vulnerability found. Applying fix..."
-
-    # Replace the vulnerable line with safe code
+    echo "🚨 Vulnerability found. Fixing..."
+    
     sed -i "s|$VULN_LINE|$SAFE_BLOCK|" "$FILE"
 
-    # Git setup
     git config --global user.name "AutoFix Bot"
     git config --global user.email "autofix@bot.com"
-
-    # Ensure we are on the correct branch
-    git checkout main
-
-    # Pull the latest changes to avoid conflicts
-    git pull origin main
-
-    # Stage and commit the change
     git add "$FILE"
-    git commit -m "Fix: Auto-remediated path traversal vulnerability"
-
-    # Push to main branch
+    git commit -m "Fix: Remediated path traversal vulnerability in FileLoader.java"
     git push origin main
 
-    echo "✅ Fix applied and pushed successfully."
+    echo "✅ Fix committed and pushed successfully."
 else
-    echo "✔️ No vulnerable pattern found. Nothing to fix."
+    echo "✔️ No vulnerable code found in $FILE"
 fi
