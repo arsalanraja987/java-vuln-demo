@@ -2,26 +2,33 @@ name: Auto Fix Java Vulnerability
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   auto-fix:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      - name: Make fix.sh executable
-        run: chmod +x fix.sh
+    - name: Make fix.sh executable
+      run: chmod +x fix.sh
 
-      - name: Run fix.sh
-        run: ./fix.sh
+    - name: Run fix.sh
+      run: ./fix.sh
 
-      - name: Commit and Push Fix
-        run: |
-          git config --global user.name "AutoFix Bot"
-          git config --global user.email "autofix@bot.com"
-          git add FileLoader.java
-          git commit -m "Auto-fix: patch path traversal vulnerability" || echo "No changes to commit"
-          git push origin main
+    - name: Configure Git
+      run: |
+        git config --global user.name "AutoFix Bot"
+        git config --global user.email "autofix@bot.com"
+
+    - name: Commit and Push Fix
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
+      run: |
+        git add .
+        git commit -m "Auto-fixed path traversal vulnerability" || echo "Nothing to commit"
+        git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}
+        git push origin main
