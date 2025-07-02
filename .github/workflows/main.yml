@@ -1,0 +1,30 @@
+name: Auto Fix Java Vulnerability
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  auto-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Make fix.sh executable
+        run: chmod +x fix.sh
+
+      - name: Run fix.sh
+        run: ./fix.sh
+
+      - name: Commit and Push Fix
+        run: |
+          git config --global user.name "AutoFix Bot"
+          git config --global user.email "autofix@bot.com"
+          git add FileLoader.java
+          git commit -m "Fix: Auto-remediated vulnerability"
+          git push
+        env:
+          GIT_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
