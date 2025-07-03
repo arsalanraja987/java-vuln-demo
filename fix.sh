@@ -31,4 +31,5 @@ if grep -q "$VULN_LINE" "$FILE"; then
 else
     echo "✔️ No vulnerable code found in $FILE"
 fi
+
   
