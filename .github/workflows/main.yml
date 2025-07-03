@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
@@ -24,18 +27,18 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
       - name: Run SonarCloud scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           projectBaseDir: .
+          args: >
+            -Dsonar.organization=arsalanraja987
+            -Dsonar.projectKey=arsalanraja987_java-vuln-demo
 
       - name: Make fix.sh executable
-        run: chmod +x fix.sh
+        run: chmod +x ./fix.sh
 
       - name: Run fix.sh
         run: ./fix.sh
@@ -43,8 +46,11 @@ jobs:
       - name: Commit and Push Fix
         run: |
           git config --global user.name "github-actions"
-          git config --global user.email "action@github.com"
-          git add -A
-          git diff --cached --quiet || git commit -m "Auto fix path traversal vulnerability"
-          git push || echo "Nothing to push"
-
+          git config --global user.email "github-actions@github.com"
+          git add -u
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto fix vulnerability"
+            git push
+          fi
