@@ -1,19 +1,39 @@
-name: auto-fix
+name: SonarCloud Scan and Auto Fix
 
 on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
-  auto-fix:
+  scan-and-fix:
+    name: Run SonarCloud and Fix Vulnerability
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
       with:
-        token: ${{ secrets.GH_TOKEN }}
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Cache SonarCloud packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: Run SonarCloud scan
+      uses: SonarSource/sonarcloud-github-action@v2
+      with:
+        projectBaseDir: '.'
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     - name: Make fix.sh executable
       run: chmod +x fix.sh
@@ -23,8 +43,8 @@ jobs:
 
     - name: Commit and Push Fix
       run: |
-        git config --global user.name "AutoFix Bot"
-        git config --global user.email "autofix@example.com"
-        git add .
-        git commit -m "Auto-fixed path traversal vulnerability" || echo "No changes to commit"
-        git push origin HEAD:main
+        git config --global user.name "github-actions"
+        git config --global user.email "action@github.com"
+        git add src/
+        git commit -m "Auto fix path traversal vulnerability"
+        git push
